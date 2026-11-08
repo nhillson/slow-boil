@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slow Boil — playlists that bridge two artists</title>
+<meta name="description" content="Pick two artists. Get a playlist that drifts from one to the other so gradually you won't notice.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐸</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0f1411;--panel:#171e19;--line:#26302a;--ink:#e9efe9;--mute:#93a197;--cool:#4fb3a9;--warm:#f06b3f;--accent:#f3c14b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif;min-height:100vh;padding-bottom:110px}
+  .wrap{max-width:780px;margin:0 auto;padding:28px 18px 40px}
+  h1{font-family:Fraunces,serif;font-weight:800;font-size:clamp(34px,7vw,56px);line-height:1;margin:0 0 6px;letter-spacing:-.02em}
+  h1 span{background:linear-gradient(90deg,var(--cool),var(--accent),var(--warm));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--mute);margin:0 0 24px;max-width:58ch}
+  form{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:12px}
+  .row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end}
+  label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin-bottom:4px}
+  input{width:100%;background:#0c100d;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:11px 12px;font:inherit}
+  input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:#1f2822;color:var(--ink);padding:10px 14px}
+  button:hover{border-color:var(--mute)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .primary{background:linear-gradient(90deg,var(--cool),var(--warm));border:0;color:#101410;font-weight:600}
+  .swap{height:44px}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+  .status{margin:18px 2px 6px;color:var(--mute);min-height:1.5em}
+  .status.err{color:#ff8a7a}
+  .prog{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:12px;display:none}
+  .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cool),var(--warm));transition:width .3s}
+  ol{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+  li{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:12px;padding:10px 12px}
+  li.playing{background:#1d261f;border-color:var(--c)}
+  .cov{width:52px;height:52px;border-radius:8px;background:#0c100d center/cover;position:relative;cursor:pointer;border:0;padding:0}
+  .cov::after{content:"▶";position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:18px;background:rgba(0,0,0,.35);border-radius:8px;opacity:0;transition:opacity .15s}
+  .cov:hover::after,li.playing .cov::after{opacity:1}
+  li.playing .cov::after{content:"❚❚"}
+  .t{font-weight:600}
+  .a{opacity:.85}
+  .meta{color:var(--mute);font-size:12px}
+  .acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+  .acts a{font-size:12px;text-decoration:none;border-radius:999px;padding:5px 10px;white-space:nowrap;border:1px solid var(--line);color:var(--ink)}
+  .acts a.sp{background:#1ed760;color:#0b0f0c;border-color:#1ed760;font-weight:600}
+  .acts button{font-size:12px;padding:5px 9px}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .note{color:var(--mute);font-size:13px;margin-top:10px}
+  .note a{color:var(--accent)}
+  .ex{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:1px 8px;margin:2px}
+  footer{margin-top:40px;color:var(--mute);font-size:12px}
+  footer a{color:var(--mute)}
+  .player{position:fixed;left:0;right:0;bottom:0;background:rgba(15,20,17,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px 16px;display:none}
+  .player .in{max-width:780px;margin:0 auto;display:flex;gap:12px;align-items:center}
+  .player .now{flex:1;min-width:0}
+  .player .now div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .player .pb{height:4px;background:var(--line);border-radius:2px;margin-top:6px;overflow:hidden}
+  .player .pb i{display:block;height:100%;width:0;background:var(--c,var(--accent))}
+  .player button{padding:8px 12px}
+  .toast{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);background:#26302a;padding:8px 14px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.on{opacity:1}
+  @media (max-width:600px){
+    .row{grid-template-columns:1fr}
+    .swap{justify-self:center}
+    li{grid-template-columns:48px 1fr}
+    .cov{width:48px;height:48px}
+    .acts{grid-column:1 / -1;justify-content:flex-start}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Slow <span>Boil</span></h1>
+  <p class="sub">Pick two artists. Get a playlist that drifts from one to the other so gradually you won't notice the water heating up.</p>
+
+  <form id="f">
+    <div class="row">
+      <div><label for="from">Start with</label><input id="from" placeholder="e.g. Bon Iver" autocomplete="off" required></div>
+      <button type="button" class="swap" id="swap" title="Swap" aria-label="Swap artists">⇄</button>
+      <div><label for="to">End with</label><input id="to" placeholder="e.g. Slayer" autocomplete="off" required></div>
+    </div>
+    <div class="controls">
+      <button type="button" id="surprise">Surprise me</button>
+      <button type="submit" class="primary" id="go">Boil it</button>
+    </div>
+  </form>
+
+  <div class="status" id="status" role="status"></div>
+  <div class="prog" id="prog"><i></i></div>
+  <div id="out"></div>
+
+  <footer>
+    A remake inspired by Paul Lamere's 2013 <a href="https://musicmachinery.com/2013/01/02/boil-the-frog-2/">Boil the Frog</a>.
+    Artist similarity, popularity and 30-second previews come from the public Deezer API. Not affiliated with Deezer or Spotify.
+  </footer>
+</div>
+
+<div class="player" id="player">
+  <div class="in">
+    <button id="pPrev" aria-label="Previous">⏮</button>
+    <button id="pPlay" aria-label="Play/pause">▶</button>
+    <button id="pNext" aria-label="Next">⏭</button>
+    <div class="now"><div id="pTitle"></div><div class="meta" id="pArtist"></div><div class="pb"><i id="pBar"></i></div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<audio id="audio" preload="none"></audio>
+
+<script src="engine.js"></script>
+<script>
+// ---------- Deezer via JSONP (the API sends no CORS headers) with throttling ----------
+const queue = []; let active = 0, lastStart = 0, seq = 0;
+const MIN_GAP = 110, MAX_ACTIVE = 6;
+function pump(){
+  while (queue.length && active < MAX_ACTIVE) {
+    const now = Date.now(), wait = lastStart + MIN_GAP - now;
+    if (wait > 0) { setTimeout(pump, wait); return; }
+    lastStart = now; active++;
+    const job = queue.shift();
+    jsonp(job.path).then(job.resolve, job.reject).finally(() => { active--; pump(); });
+  }
+}
+function jsonp(path, tries = 0){
+  return new Promise((resolve, reject) => {
+    const cb = "__dz" + (++seq);
+    const s = document.createElement("script");
+    const sep = path.includes("?") ? "&" : "?";
+    const timer = setTimeout(() => done(new Error("timeout")), 12000);
+    function done(err, data){
+      clearTimeout(timer); delete window[cb]; s.remove();
+      if (err) reject(err); else resolve(data);
+    }
+    window[cb] = data => {
+      if (data && data.error) {
+        if (data.error.code === 4 && tries < 4) { // quota: back off and retry
+          clearTimeout(timer); delete window[cb]; s.remove();
+          setTimeout(() => jsonp(path, tries + 1).then(resolve, reject), 1200 * (tries + 1));
+          return;
+        }
+        return done(new Error(data.error.message || "Deezer error"));
+      }
+      done(null, data);
+    };
+    s.onerror = () => done(new Error("network"));
+    s.src = `https://api.deezer.com${path}${sep}output=jsonp&callback=${cb}`;
+    document.head.appendChild(s);
+  });
+}
+const api = path => new Promise((resolve, reject) => { queue.push({ path, resolve, reject }); pump(); });
+
+// ---------- App ----------
+const $ = s => document.querySelector(s);
+const engine = SlowBoil.makeEngine(api);
+const state = { A: null, B: null, list: [], exclude: [], excludeNames: {}, busy: false, cur: -1 };
+const PAIRS = [["Bon Iver","Slayer"],["Taylor Swift","Aphex Twin"],["Johnny Cash","Daft Punk"],["Miles Davis","Kendrick Lamar"],["ABBA","Metallica"],["Nina Simone","Radiohead"],["Dolly Parton","Nine Inch Nails"],["The Beach Boys","Death Grips"],["Enya","Black Sabbath"],["Frank Sinatra","Tame Impala"],["Bob Marley","Kraftwerk"],["Norah Jones","Rage Against the Machine"]];
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function status(msg, err){ const s = $("#status"); s.textContent = msg || ""; s.className = "status" + (err ? " err" : ""); }
+function prog(p){ const el = $("#prog"); if (p == null) { el.style.display = "none"; return; } el.style.display = "block"; el.firstElementChild.style.width = Math.min(100, p * 100) + "%"; }
+function toast(m){ const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 1800); }
+function color(t){ const a=[79,179,169], m=[243,193,75], b=[240,107,63]; const [p,q,u] = t < .5 ? [a,m,t*2] : [m,b,(t-.5)*2]; return `rgb(${p.map((v,i)=>Math.round(v+(q[i]-v)*u)).join(",")})`; }
+function fmtFans(n){ return n >= 1e6 ? (n/1e6).toFixed(1).replace(/\.0$/,"") + "M fans" : n >= 1e3 ? Math.round(n/1e3) + "K fans" : n + " fans"; }
+function setBusy(b){ state.busy = b; document.querySelectorAll("button").forEach(x => { if (!x.closest(".player") && x.id !== "swap") x.disabled = b; }); }
+
+function syncUrl(){
+  const u = new URL(location.href);
+  u.search = ""; u.hash = "";
+  if (state.A && state.B) { u.searchParams.set("from", state.A.name); u.searchParams.set("to", state.B.name); }
+  if (state.exclude.length) u.searchParams.set("skip", state.exclude.join(","));
+  history.replaceState(null, "", u);
+}
+
+async function run(){
+  if (state.busy) return;
+  const fq = $("#from").value.trim(), tq = $("#to").value.trim();
+  if (!fq || !tq) { status("Enter two artists.", true); return; }
+  stop();
+  setBusy(true); prog(0);
+  try {
+    status("Looking up artists…");
+    const [A, B] = await Promise.all([engine.findArtist(fq), engine.findArtist(tq)]);
+    if (!A) throw new Error(`Couldn't find an artist called “${fq}”.`);
+    if (!B) throw new Error(`Couldn't find an artist called “${tq}”.`);
+    state.A = A; state.B = B;
+    $("#from").value = A.name; $("#to").value = B.name;
+    status(`Heating the water between ${A.name} and ${B.name}…`);
+    const path = await engine.findPath(A, B, state.exclude, p => { prog(p.fetches / p.max); status(`Exploring near ${p.at}…`); });
+    if (!path) throw new Error(`Couldn't find a route from ${A.name} to ${B.name}${state.exclude.length ? " while avoiding those artists" : ""}. Try another pair${state.exclude.length ? " or clear the bypassed artists" : ""}.`);
+    status("Choosing songs…"); prog(.95);
+    state.list = await engine.pickTracks(path);
+    state.cur = -1;
+    render(); syncUrl();
+    status(`${state.list.length} songs from ${A.name} to ${B.name}. Tap a cover to start.`);
+  } catch (e) {
+    status(e.message === "network" || e.message === "timeout" ? "Couldn't reach Deezer. Check your connection (or an ad blocker) and try again." : e.message, true);
+  }
+  prog(null); setBusy(false);
+}
+
+function render(){
+  const n = state.list.length;
+  const exNames = state.exclude.map(id => state.excludeNames[id] || ("#" + id));
+  $("#out").innerHTML = `<ol>${state.list.map((x, i) => {
+    const c = color(n === 1 ? 0 : i / (n - 1));
+    const t = x.track, q = encodeURIComponent(`${t ? t.title : ""} ${x.artist.name}`.trim());
+    const end = i === 0 || i === n - 1;
+    return `<li style="--c:${c}" data-i="${i}" class="${i === state.cur ? "playing" : ""}">
+      <button class="cov" data-play="${i}" style="background-image:url('${esc(t && t.cover || x.artist.picture || "")}')" aria-label="Play ${esc(t ? t.title : x.artist.name)}" ${t && t.preview ? "" : "disabled"}></button>
+      <div>
+        <div class="t">${esc(t ? t.title : "No track found")}</div>
+        <div class="a">${esc(x.artist.name)}</div>
+        <div class="meta">${fmtFans(x.artist.nb_fan)}${t && t.album ? " · " + esc(t.album) : ""}</div>
+      </div>
+      <div class="acts">
+        <a class="sp" href="https://open.spotify.com/search/${q}" target="_blank" rel="noopener">Spotify</a>
+        ${t ? `<a href="${esc(t.link)}" target="_blank" rel="noopener">Deezer</a>` : ""}
+        <a href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">YouTube</a>
+        ${end ? "" : `<button data-bypass="${i}" title="Find a route that avoids this artist">Bypass</button>`}
+      </div>
+    </li>`; }).join("")}</ol>
+    <div class="bar">
+      <button class="primary" id="playAll">▶ Play all previews</button>
+      <button id="copy">Copy tracklist</button>
+      <button id="share">Copy link</button>
+    </div>
+    ${exNames.length ? `<div class="note">Avoiding: ${exNames.map(s => `<span class="ex">${esc(s)}</span>`).join("")} <a href="#" id="clearEx">clear</a></div>` : ""}
+    <div class="note">Previews are 30 seconds. Use the Spotify buttons for full songs.</div>`;
+  document.querySelectorAll("[data-play]").forEach(b => b.onclick = () => toggle(+b.dataset.play));
+  document.querySelectorAll("[data-bypass]").forEach(b => b.onclick = () => bypass(+b.dataset.bypass));
+  $("#playAll").onclick = () => play(0);
+  $("#copy").onclick = copyList;
+  $("#share").onclick = () => copyText(location.href, "Link copied");
+  const ce = $("#clearEx"); if (ce) ce.onclick = e => { e.preventDefault(); state.exclude = []; run(); };
+}
+
+function bypass(i){
+  const a = state.list[i].artist;
+  if (!state.exclude.includes(a.id)) state.exclude.push(a.id);
+  state.excludeNames[a.id] = a.name;
+  run();
+}
+
+async function copyText(txt, msg){
+  try { await navigator.clipboard.writeText(txt); toast(msg); }
+  catch { const ta = document.createElement("textarea"); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); toast(msg); } catch { toast("Couldn't copy"); } ta.remove(); }
+}
+function copyList(){
+  copyText(`Slow Boil: ${state.A.name} → ${state.B.name}\n` + state.list.map((x, i) => `${i + 1}. ${x.track ? x.track.title : "?"} — ${x.artist.name}`).join("\n"), "Tracklist copied");
+}
+
+// ---------- Player ----------
+const audio = $("#audio");
+function play(i){
+  while (i < state.list.length && !(state.list[i].track && state.list[i].track.preview)) i++;
+  if (i >= state.list.length) { stop(); return; }
+  state.cur = i;
+  const x = state.list[i];
+  audio.src = x.track.preview;
+  audio.play().catch(() => toast("Tap play to start"));
+  $("#player").style.display = "block";
+  $("#player").style.setProperty("--c", color(state.list.length === 1 ? 0 : i / (state.list.length - 1)));
+  $("#pTitle").textContent = x.track.title;
+  $("#pArtist").textContent = `${x.artist.name} · ${i + 1} of ${state.list.length}`;
+  document.querySelectorAll("li[data-i]").forEach(li => li.classList.toggle("playing", +li.dataset.i === i));
+  const li = document.querySelector(`li[data-i="${i}"]`); if (li) li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+function toggle(i){ if (i === state.cur && !audio.paused) audio.pause(); else if (i === state.cur) audio.play(); else play(i); }
+function stop(){ audio.pause(); state.cur = -1; $("#player").style.display = "none"; document.querySelectorAll("li.playing").forEach(l => l.classList.remove("playing")); }
+audio.addEventListener("ended", () => play(state.cur + 1));
+audio.addEventListener("error", () => { if (state.cur >= 0) play(state.cur + 1); });
+audio.addEventListener("play", () => { $("#pPlay").textContent = "❚❚"; });
+audio.addEventListener("pause", () => { $("#pPlay").textContent = "▶"; });
+audio.addEventListener("timeupdate", () => { $("#pBar").style.width = (audio.duration ? audio.currentTime / audio.duration * 100 : 0) + "%"; });
+$("#pPlay").onclick = () => audio.paused ? audio.play() : audio.pause();
+$("#pNext").onclick = () => play(state.cur + 1);
+$("#pPrev").onclick = () => play(Math.max(0, state.cur - 1));
+
+// ---------- Wiring ----------
+$("#f").addEventListener("submit", e => { e.preventDefault(); state.exclude = []; run(); });
+$("#swap").onclick = () => { const a = $("#from").value; $("#from").value = $("#to").value; $("#to").value = a; };
+$("#surprise").onclick = () => { const p = PAIRS[Math.floor(Math.random() * PAIRS.length)]; $("#from").value = p[0]; $("#to").value = p[1]; state.exclude = []; run(); };
+
+(function init(){
+  const p = new URLSearchParams(location.search);
+  if (p.get("from") && p.get("to")) {
+    $("#from").value = p.get("from"); $("#to").value = p.get("to");
+    state.exclude = (p.get("skip") || "").split(",").map(Number).filter(Boolean);
+    run();
+  }
+})();
+</script>
+</body>
+</html>
